@@ -15,19 +15,19 @@ defmodule StatsAgent.Socket do
   end
 
   def start_link(opts) do
-    socket_opts = Keyword.put(opts, :url, "ws://localhost:4000/server_socket/websocket")
-
     GenSocketClient.start_link(
       __MODULE__,
       Phoenix.Channels.GenSocketClient.Transport.WebSocketClient,
-      socket_opts
+      opts
     )
   end
 
   def init(opts) do
     url = Keyword.fetch!(opts, :url)
     authentication_secret = Keyword.fetch!(opts, :authentication_secret)
+    application_name = Keyword.fetch!(opts, :application_name)
     connect_interval_s = Keyword.get(opts, :connect_interval_s, 3)
+    encryption_key = Keyword.fetch!(opts, :encryption_key)
 
     server_id =
       case Keyword.get(opts, :server_id) do
@@ -40,16 +40,17 @@ defmodule StatsAgent.Socket do
       end
 
     url_params = [
-      application_name: "MockServer",
+      application_name: application_name,
       token: authentication_secret,
       server_id: server_id
     ]
 
     state = %{
       first_join: true,
-      application_name: "MockServer",
+      application_name: application_name,
       connect_interval_s: connect_interval_s,
-      server_id: server_id
+      server_id: server_id,
+      encryption_key: encryption_key
     }
 
     {:connect, url, url_params, state}
@@ -60,15 +61,15 @@ defmodule StatsAgent.Socket do
         "dispatch_command",
         %{"command_id" => cid, "encrypted_command" => encrypted_command},
         transport,
-        state = %{server_id: server_id}
+        state = %{encryption_key: key, server_id: server_id}
       ) do
-    {:ok, command} = StatsAgent.Encryption.decrypt(encrypted_command, key: "secret")
+    {:ok, command} = StatsAgent.Encryption.decrypt(encrypted_command, key: key)
     {:ok, response} = StatsAgent.CommandHandler.call(command)
 
     {:ok, _} =
       GenSocketClient.push(transport, topic, "collect_results", %{
         command_id: cid,
-        encrypted_response: StatsAgent.Encryption.encrypt(response, key: "secret"),
+        encrypted_response: StatsAgent.Encryption.encrypt(response, key: key),
         server_id: server_id
       })
 
