@@ -1,0 +1,2 @@
+defmodule StatsAgentTest do
+end
