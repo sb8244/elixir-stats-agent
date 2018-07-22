@@ -70,7 +70,8 @@ defmodule StatsAgent.Socket do
       GenSocketClient.push(transport, topic, "collect_results", %{
         command_id: cid,
         encrypted_response: StatsAgent.Encryption.encrypt(response, key: key),
-        server_id: server_id
+        server_id: server_id,
+        collected_at_ms: System.os_time(:milliseconds)
       })
 
     {:ok, state}
