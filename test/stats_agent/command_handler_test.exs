@@ -40,5 +40,12 @@ defmodule StatsAgent.CommandHandlerTest do
       payload = Poison.decode!(stats_json)
       assert Map.keys(payload) == ["collected_at_ms", "stats"]
     end
+
+    test "process_list returns a text payload" do
+      {:ok, "text|" <> text} = CommandHandler.call("process_list")
+      assert String.starts_with?(text, "+-----")
+      assert text =~ "gen_server:loop/7"
+      assert text =~ "code_server"
+    end
   end
 end

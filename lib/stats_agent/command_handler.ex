@@ -1,7 +1,10 @@
 defmodule StatsAgent.CommandHandler do
+  alias StatsAgent.CommandHandler
+
   @command_handlers [
-    StatsAgent.CommandHandler.AllSystemStats,
-    StatsAgent.CommandHandler.ProcessCount
+    CommandHandler.AllSystemStats,
+    CommandHandler.ProcessCount,
+    CommandHandler.ProcessList
   ]
 
   def call(command, opts \\ []) do
