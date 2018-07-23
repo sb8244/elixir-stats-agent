@@ -1,21 +1,10 @@
 # StatsAgent
 
-**TODO: Add description**
+The butter to https://github.com/sb8244/elixir-stats-server's toast.
+
+This OTP application library is a socket that connects to your central stat server
+and listens for / responds to encrypted commands.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `stats_agent` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:stats_agent, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/stats_agent](https://hexdocs.pm/stats_agent).
-
+Not yet available
