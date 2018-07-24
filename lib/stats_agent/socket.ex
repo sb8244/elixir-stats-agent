@@ -63,18 +63,23 @@ defmodule StatsAgent.Socket do
         transport,
         state = %{encryption_key: key, server_id: server_id}
       ) do
-    {:ok, command} = StatsAgent.Encryption.decrypt(encrypted_command, key: key)
-    {:ok, response} = StatsAgent.CommandHandler.call(command)
-
-    {:ok, _} =
-      GenSocketClient.push(transport, topic, "collect_results", %{
-        command_id: cid,
-        encrypted_response: StatsAgent.Encryption.encrypt(response, key: key),
-        server_id: server_id,
-        collected_at_ms: System.os_time(:milliseconds)
-      })
-
-    {:ok, state}
+    with {:decryption, {:ok, command}} <-
+           {:decryption, StatsAgent.Encryption.decrypt(encrypted_command, key: key)},
+         {:handler, {:ok, response}} <- {:handler, StatsAgent.CommandHandler.call(command)},
+         {:push, {:ok, _}} <-
+           {:push,
+            GenSocketClient.push(transport, topic, "collect_results", %{
+              command_id: cid,
+              encrypted_response: StatsAgent.Encryption.encrypt(response, key: key),
+              server_id: server_id,
+              collected_at_ms: System.os_time(:milliseconds)
+            })} do
+      {:ok, state}
+    else
+      e ->
+        Logger.error("#{__MODULE__} encountered error #{inspect(e)}")
+        {:ok, state}
+    end
   end
 
   def handle_message(topic, event, payload, _transport, state) do
@@ -95,7 +100,7 @@ defmodule StatsAgent.Socket do
   end
 
   def handle_joined(topic, _payload, _transport, state) do
-    Logger.debug("joined the topic #{topic}")
+    Logger.debug("joined the topic: #{topic}")
     {:ok, state}
   end
 
@@ -136,7 +141,7 @@ defmodule StatsAgent.Socket do
   end
 
   def handle_info({:join, topic}, transport, state = %{connect_interval_s: connect_interval_s}) do
-    Logger.debug("joining the topic #{topic}")
+    Logger.debug("joining the topic: #{topic}")
 
     case GenSocketClient.join(transport, topic) do
       {:error, reason} ->
@@ -151,7 +156,7 @@ defmodule StatsAgent.Socket do
   end
 
   def handle_info(message, _transport, state) do
-    Logger.warn("Unhandled info #{inspect(message)}")
+    Logger.warn("Unhandled handle_info #{inspect(message)}")
     {:ok, state}
   end
 
