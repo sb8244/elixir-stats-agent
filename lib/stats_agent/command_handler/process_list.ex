@@ -1,6 +1,10 @@
 defmodule StatsAgent.CommandHandler.ProcessList do
   @sort_types %{
-    "memory" => :memory
+    "memory" => :memory,
+    "message_queue_len" => :message_queue_len,
+    "heap_size" => :heap_size,
+    "total_heap_size" => :total_heap_size,
+    "reductions" => :reductions
   }
 
   alias StatsAgent.Format
@@ -9,9 +13,9 @@ defmodule StatsAgent.CommandHandler.ProcessList do
 
   def call("process_list|" <> str_args) do
     args = URI.decode_query(str_args)
-    size = Map.get(args, "count", 10)
+    size = Map.get(args, "count", "10") |> String.to_integer()
     sort_type_name = Map.get(args, "by", "memory")
-    sort_type = Map.get(@sort_types, sort_type_name, :memory)
+    sort_type = Map.fetch!(@sort_types, sort_type_name)
 
     plaintext =
       :recon.proc_count(sort_type, size)
@@ -33,7 +37,9 @@ defmodule StatsAgent.CommandHandler.ProcessList do
         {"Name", :registered_name},
         {"Memory", :memory},
         {"Msg Q Len", :message_queue_len},
-        {"Reductions", :reductions_total}
+        {"Reductions", :reductions_total},
+        {"Heap Size", :heap_size},
+        {"Total Heap Size", :total_heap_size}
       ],
       colorize: false
     )
@@ -60,7 +66,9 @@ defmodule StatsAgent.CommandHandler.ProcessList do
           registered_name: registered_name(proc_info),
           memory: memory(proc_info),
           message_queue_len: message_queue_len(proc_info),
-          reductions_total: reductions(proc_info)
+          reductions_total: reductions(proc_info),
+          heap_size: heap_size(proc_info),
+          total_heap_size: total_heap_size(proc_info)
         }
     end
   end
@@ -122,5 +130,15 @@ defmodule StatsAgent.CommandHandler.ProcessList do
   defp reductions(info) do
     Keyword.get(info, :work, [])
     |> Keyword.get(:reductions, "er")
+  end
+
+  defp heap_size(info) do
+    Keyword.get(info, :memory_used, [])
+    |> Keyword.get(:heap_size, -1)
+  end
+
+  defp total_heap_size(info) do
+    Keyword.get(info, :memory_used, [])
+    |> Keyword.get(:total_heap_size, -1)
   end
 end
